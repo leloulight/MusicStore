@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Server.Testing;
+using Microsoft.AspNet.Testing;
 using Microsoft.AspNet.Testing.xunit;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -12,7 +13,7 @@ namespace E2ETests
     // Uses ports ranging 5001 - 5025.
     public class SmokeTests_X86
     {
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "Smoke")]
         [OSSkipCondition(OperatingSystems.Linux)]
         [OSSkipCondition(OperatingSystems.MacOSX)]
         [InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5001/")]
@@ -29,7 +30,7 @@ namespace E2ETests
             await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
 
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory(Skip = "Temporarily disabling test"), Trait("E2Etests", "Smoke")]
         [OSSkipCondition(OperatingSystems.Windows)]
         [InlineData(ServerType.Kestrel, RuntimeFlavor.Mono, RuntimeArchitecture.x86, "http://localhost:5005/")]
         public async Task NonWindowsOS(
@@ -45,7 +46,7 @@ namespace E2ETests
 
     public class SmokeTests_X64
     {
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "Smoke")]
         [OSSkipCondition(OperatingSystems.Linux)]
         [OSSkipCondition(OperatingSystems.MacOSX)]
         [InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x64, "http://localhost:5006/")]
@@ -62,7 +63,7 @@ namespace E2ETests
             await smokeTestRunner.SmokeTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
 
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "Smoke")]
         [OSSkipCondition(OperatingSystems.Windows)]
         [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5011/")]
         public async Task NonWindowsOS(
@@ -78,7 +79,7 @@ namespace E2ETests
 
     public class SmokeTests_OnIIS
     {
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "Smoke")]
         [OSSkipCondition(OperatingSystems.MacOSX)]
         [OSSkipCondition(OperatingSystems.Linux)]
         [SkipIfCurrentRuntimeIsCoreClr]
@@ -107,7 +108,7 @@ namespace E2ETests
             bool noSource = false)
         {
             var logger = new LoggerFactory()
-                           .AddConsole(LogLevel.Warning)
+                           .AddConsole(LogLevel.Information)
                            .CreateLogger($"Smoke:{serverType}:{donetFlavor}:{architecture}");
 
             using (logger.BeginScope("SmokeTestSuite"))
@@ -123,6 +124,7 @@ namespace E2ETests
                     UserAdditionalCleanup = parameters =>
                     {
                         if (!Helpers.RunningOnMono
+                            && TestPlatformHelper.IsWindows
                             && parameters.ServerType != ServerType.IIS)
                         {
                             // Mono uses InMemoryStore
@@ -142,10 +144,15 @@ namespace E2ETests
                     var deploymentResult = deployer.Deploy();
                     Helpers.SetInMemoryStoreForIIS(deploymentParameters, logger);
 
-                    var httpClientHandler = new HttpClientHandler();
+                    var httpClientHandler = new HttpClientHandler()
+                    {
+                        // Temporary workaround for issue https://github.com/dotnet/corefx/issues/4960
+                        AllowAutoRedirect = false
+                    };
                     var httpClient = new HttpClient(httpClientHandler)
                     {
-                        BaseAddress = new Uri(deploymentResult.ApplicationBaseUri)
+                        BaseAddress = new Uri(deploymentResult.ApplicationBaseUri),
+                        Timeout = TimeSpan.FromSeconds(5)
                     };
 
                     // Request to base address and check if various parts of the body are rendered

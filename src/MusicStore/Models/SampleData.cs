@@ -5,9 +5,9 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Identity;
 using Microsoft.Data.Entity;
-using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.PlatformAbstractions;
 
 namespace MusicStore.Models
 {
@@ -15,7 +15,7 @@ namespace MusicStore.Models
     {
         const string imgUrl = "~/Images/placeholder.png";
         const string defaultAdminUserName = "DefaultAdminUserName";
-        const string defaultAdminPassword = "defaultAdminPassword";
+        const string defaultAdminPassword = "DefaultAdminPassword";
 
         public static async Task InitializeMusicStoreDatabaseAsync(IServiceProvider serviceProvider, bool createUsers = true)
         {

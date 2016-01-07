@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Server.Testing;
+using Microsoft.AspNet.Testing;
 using Microsoft.AspNet.Testing.xunit;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -34,7 +35,7 @@ namespace E2ETests
             await OpenIdConnectTestSuite(serverType, runtimeFlavor, architecture, applicationBaseUrl);
         }
 
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory(Skip = "https://github.com/aspnet/MusicStore/issues/565"), Trait("E2Etests", "E2Etests")]
         [OSSkipCondition(OperatingSystems.Windows)]
         [InlineData(ServerType.Kestrel, RuntimeFlavor.Mono, RuntimeArchitecture.x86, "http://localhost:5043/")]
         public async Task OpenIdConnect_OnMono(ServerType serverType, RuntimeFlavor runtimeFlavor, RuntimeArchitecture architecture, string applicationBaseUrl)
@@ -59,7 +60,8 @@ namespace E2ETests
                     EnvironmentName = "OpenIdConnectTesting",
                     UserAdditionalCleanup = parameters =>
                     {
-                        if (!Helpers.RunningOnMono)
+                        if (!Helpers.RunningOnMono
+                            && TestPlatformHelper.IsWindows)
                         {
                             // Mono uses InMemoryStore
                             DbUtils.DropDatabase(musicStoreDbName, logger);
@@ -76,7 +78,7 @@ namespace E2ETests
                 using (var deployer = ApplicationDeployerFactory.Create(deploymentParameters, logger))
                 {
                     var deploymentResult = deployer.Deploy();
-                    var httpClientHandler = new HttpClientHandler();
+                    var httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
                     var httpClient = new HttpClient(httpClientHandler) { BaseAddress = new Uri(deploymentResult.ApplicationBaseUri) };
 
                     // Request to base address and check if various parts of the body are rendered & measure the cold startup time.

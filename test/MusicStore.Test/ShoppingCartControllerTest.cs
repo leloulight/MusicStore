@@ -42,11 +42,8 @@ namespace MusicStore.Controllers
             var httpContext = new DefaultHttpContext();
             httpContext.Session = new TestSession();
 
-            var controller = new ShoppingCartController()
-            {
-                DbContext = _serviceProvider.GetRequiredService<MusicStoreContext>(),
-            };
-            controller.ActionContext.HttpContext = httpContext;
+            var controller = new ShoppingCartController(_serviceProvider.GetRequiredService<MusicStoreContext>());
+            controller.ControllerContext.HttpContext = httpContext;
 
             // Act
             var result = await controller.Index();
@@ -69,11 +66,8 @@ namespace MusicStore.Controllers
             httpContext.Session = new TestSession();
             httpContext.Session.SetString("Session", "CartId_A");
 
-            var controller = new ShoppingCartController()
-            {
-                DbContext = _serviceProvider.GetRequiredService<MusicStoreContext>(),
-            };
-            controller.ActionContext.HttpContext = httpContext;
+            var controller = new ShoppingCartController(_serviceProvider.GetRequiredService<MusicStoreContext>());
+            controller.ControllerContext.HttpContext = httpContext;
 
             // Act
             var result = await controller.Index();
@@ -106,11 +100,8 @@ namespace MusicStore.Controllers
             dbContext.AddRange(cartItems);
             dbContext.SaveChanges();
 
-            var controller = new ShoppingCartController()
-            {
-                DbContext = dbContext,
-            };
-            controller.ActionContext.HttpContext = httpContext;
+            var controller = new ShoppingCartController(dbContext);
+            controller.ControllerContext.HttpContext = httpContext;
 
             // Act
             var result = await controller.Index();
@@ -140,11 +131,8 @@ namespace MusicStore.Controllers
             dbContext.AddRange(albums);
             dbContext.SaveChanges();
 
-            var controller = new ShoppingCartController()
-            {
-                DbContext = dbContext
-            };
-            controller.ActionContext.HttpContext = httpContext;
+            var controller = new ShoppingCartController(dbContext);
+            controller.ControllerContext.HttpContext = httpContext;
 
             // Act
             var result = await controller.AddToCart(albumId, CancellationToken.None);
@@ -192,19 +180,15 @@ namespace MusicStore.Controllers
             // Header initialization for AntiForgery
             var headers = new KeyValuePair<string, StringValues>(
                 "RequestVerificationToken",
-                new string[] { tokens.CookieToken + ":" + tokens.FormToken });
+                new string[] { tokens.CookieToken + ":" + tokens.RequestToken });
             httpContext.Request.Headers.Add(headers);
 
             // Cotroller initialization
-            var controller = new ShoppingCartController()
-            {
-                DbContext = dbContext,
-                Antiforgery = antiForgery,
-            };
-            controller.ActionContext.HttpContext = httpContext;
+            var controller = new ShoppingCartController(dbContext);
+            controller.ControllerContext.HttpContext = httpContext;
 
             // Act
-            var result = await controller.RemoveFromCart(cartItemId, CancellationToken.None);
+            var result = await controller.RemoveFromCart(antiForgery, cartItemId, CancellationToken.None);
 
             // Assert
             var jsonResult = Assert.IsType<JsonResult>(result);

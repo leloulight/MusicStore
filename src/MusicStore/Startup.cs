@@ -1,11 +1,11 @@
 using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Diagnostics.Entity;
+using Microsoft.AspNet.Hosting;
 using Microsoft.AspNet.Identity.EntityFramework;
 using Microsoft.Data.Entity;
-using Microsoft.Extensions.PlatformAbstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.PlatformAbstractions;
 using MusicStore.Components;
 using MusicStore.Models;
 

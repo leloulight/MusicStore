@@ -31,7 +31,7 @@ namespace E2ETests
             var content = new FormUrlEncodedContent(formParameters.ToArray());
             response = await _httpClient.PostAsync("Account/ExternalLogin", content);
             Assert.Equal<string>("https://accounts.google.com/o/oauth2/auth", response.Headers.Location.AbsoluteUri.Replace(response.Headers.Location.Query, string.Empty));
-            var queryItems = new ReadableStringCollection(QueryHelpers.ParseQuery(response.Headers.Location.Query));
+            var queryItems = new QueryCollection(QueryHelpers.ParseQuery(response.Headers.Location.Query));
             Assert.Equal<string>("code", queryItems["response_type"]);
             Assert.Equal<string>("offline", queryItems["access_type"]);
             Assert.Equal<string>("[ClientId]", queryItems["client_id"]);
@@ -43,7 +43,7 @@ namespace E2ETests
             Assert.NotNull(_httpClientHandler.CookieContainer.GetCookies(new Uri(_deploymentResult.ApplicationBaseUri)).GetCookieWithName(".AspNet.Correlation.Google"));
 
             //This is just to generate a correlation cookie. Previous step would generate this cookie, but we have reset the handler now.
-            _httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = true };
+            _httpClientHandler = new HttpClientHandler() { AllowAutoRedirect = false };
             _httpClient = new HttpClient(_httpClientHandler) { BaseAddress = new Uri(_deploymentResult.ApplicationBaseUri) };
 
             response = await _httpClient.GetAsync("Account/Login");
@@ -60,6 +60,7 @@ namespace E2ETests
 
             //Post a message to the Google middleware
             response = await _httpClient.GetAsync("signin-google?code=ValidCode&state=ValidStateData");
+            response = await _httpClient.GetAsync(response.Headers.Location);
             await ThrowIfResponseStatusNotOk(response);
             responseContent = await response.Content.ReadAsStringAsync();
 
@@ -79,6 +80,7 @@ namespace E2ETests
 
             content = new FormUrlEncodedContent(formParameters.ToArray());
             response = await _httpClient.PostAsync("Account/ExternalLoginConfirmation", content);
+            response = await _httpClient.GetAsync(response.Headers.Location);
             await ThrowIfResponseStatusNotOk(response);
             responseContent = await response.Content.ReadAsStringAsync();
 
@@ -93,7 +95,7 @@ namespace E2ETests
             //Check for a non existing item
             response = await _httpClient.GetAsync(string.Format("Admin/StoreManager/GetAlbumIdFromName?albumName={0}", "123"));
             //This action requires admin permissions. If events are fired this permission is granted
-            _logger.LogVerbose(await response.Content.ReadAsStringAsync());
+            _logger.LogDebug(await response.Content.ReadAsStringAsync());
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             _logger.LogInformation("Middleware events were fired successfully");
         }

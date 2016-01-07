@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNet.Server.Testing;
+using Microsoft.AspNet.Testing;
 using Microsoft.AspNet.Testing.xunit;
 using Microsoft.Extensions.Logging;
 using Xunit;
@@ -13,13 +14,13 @@ namespace E2ETests
     // Uses ports ranging 5025 - 5039.
     public class PublishAndRunTests_OnX64
     {
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "PublishAndRun")]
         [OSSkipCondition(OperatingSystems.Linux)]
         [OSSkipCondition(OperatingSystems.MacOSX)]
-        [InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x64, "http://localhost:5025/", false)]
+        //[InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x64, "http://localhost:5025/", false)]
         //[InlineData(ServerType.WebListener, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5026/", false)]
         [InlineData(ServerType.Kestrel, RuntimeFlavor.Clr, RuntimeArchitecture.x64, "http://localhost:5027/", false)]
-        //[InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5028/", false)]
+        [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5028/", false)]
         public async Task WindowsOS(
             ServerType serverType,
             RuntimeFlavor runtimeFlavor,
@@ -32,7 +33,7 @@ namespace E2ETests
                 serverType, runtimeFlavor, architecture, applicationBaseUrl, noSource);
         }
 
-        [ConditionalTheory(Skip = "Bug https://github.com/aspnet/dnx/issues/2958"), Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "PublishAndRun")]
         [OSSkipCondition(OperatingSystems.Windows)]
         [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x64, "http://localhost:5030/", false)]
         public async Task NonWindowsOS(
@@ -50,13 +51,13 @@ namespace E2ETests
 
     public class PublishAndRunTests_OnX86
     {
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "PublishAndRun")]
         [OSSkipCondition(OperatingSystems.Linux)]
         [OSSkipCondition(OperatingSystems.MacOSX)]
-        [InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5031/", false)]
+        //[InlineData(ServerType.WebListener, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5031/", false)]
         //[InlineData(ServerType.WebListener, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5032/", false)]
         [InlineData(ServerType.Kestrel, RuntimeFlavor.Clr, RuntimeArchitecture.x86, "http://localhost:5033/", false)]
-        //[InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5034/", false)]
+        [InlineData(ServerType.Kestrel, RuntimeFlavor.CoreClr, RuntimeArchitecture.x86, "http://localhost:5034/", false)]
         public async Task WindowsOS(
             ServerType serverType,
             RuntimeFlavor runtimeFlavor,
@@ -69,7 +70,7 @@ namespace E2ETests
                 serverType, runtimeFlavor, architecture, applicationBaseUrl, noSource);
         }
 
-        [ConditionalTheory, Trait("E2Etests", "E2Etests")]
+        [ConditionalTheory, Trait("E2Etests", "PublishAndRun")]
         [OSSkipCondition(OperatingSystems.Windows)]
         [InlineData(ServerType.Kestrel, RuntimeFlavor.Mono, RuntimeArchitecture.x86, "http://localhost:5035/", false)]
         public async Task NonWindowsOS(
@@ -95,7 +96,7 @@ namespace E2ETests
             bool noSource)
         {
             var logger = new LoggerFactory()
-                            .AddConsole(LogLevel.Warning)
+                            .AddConsole(LogLevel.Information)
                             .CreateLogger($"Publish:{serverType}:{runtimeFlavor}:{architecture}:{noSource}");
 
             using (logger.BeginScope("Publish_And_Run_Tests"))
@@ -111,7 +112,8 @@ namespace E2ETests
                     PublishWithNoSource = noSource,
                     UserAdditionalCleanup = parameters =>
                     {
-                        if (!Helpers.RunningOnMono)
+                        if (!Helpers.RunningOnMono
+                            && TestPlatformHelper.IsWindows)
                         {
                             // Mono uses InMemoryStore
                             DbUtils.DropDatabase(musicStoreDbName, logger);
@@ -128,7 +130,7 @@ namespace E2ETests
                 using (var deployer = ApplicationDeployerFactory.Create(deploymentParameters, logger))
                 {
                     var deploymentResult = deployer.Deploy();
-                    var httpClientHandler = new HttpClientHandler() { UseDefaultCredentials = true };
+                    var httpClientHandler = new HttpClientHandler() { UseDefaultCredentials = true, AllowAutoRedirect = false };
                     var httpClient = new HttpClient(httpClientHandler);
                     httpClient.BaseAddress = new Uri(deploymentResult.ApplicationBaseUri);
 
